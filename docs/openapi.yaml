@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: AurumLedger API
+  description: >
+    Production-Grade High-Concurrency Digital Gold Wallet & Double-Entry Accounting Engine.
+    Implements persistent idempotency, double-entry bookkeeping, transactional outbox publishing,
+    and resilient dead-letter consumer processing.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+
+paths:
+  /health:
+    get:
+      summary: Health check probe
+      description: Returns service liveness and readiness status.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: AurumLedger
+                  status:
+                    type: string
+                    example: UP
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /metrics:
+    get:
+      summary: Prometheus Observability Metrics
+      description: Exposes real-time financial transfer counters, outbox publications, consumer DLQ diverts, and reconciliation audit results.
+      responses:
+        '200':
+          description: Prometheus formatted plain text metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /wallets:
+    post:
+      summary: Create digital gold wallet
+      description: Initializes a new digital gold wallet. Gold balance is recorded in milligrams (mg) of fine 24K gold.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                  example: 550e8400-e29b-41d4-a716-446655440001
+                initial_balance:
+                  type: integer
+                  description: Initial gold deposit in milligrams (1,000 mg = 1 gram).
+                  example: 1000
+      responses:
+        '201':
+          description: Wallet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /wallets/{id}:
+    get:
+      summary: Get wallet balance
+      description: Retrieves a wallet balance using the Cache-Aside pattern (Redis -> PostgreSQL).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Wallet UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Wallet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        '404':
+          description: Wallet not found
+
+  /transfers:
+    post:
+      summary: Concurrency-safe gold transfer
+      description: >
+        Executes a 15-step gold transfer lifecycle coordinating persistent idempotency,
+        deterministic row locking, double-entry ledger records, transaction creation,
+        and transactional outbox event insertion.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique client idempotency key (UUID or opaque string).
+          schema:
+            type: string
+            example: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+        - name: X-User-Id
+          in: header
+          required: false
+          description: Authenticated user ID (must match sender wallet owner).
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sender_id
+                - receiver_id
+                - amount
+              properties:
+                sender_id:
+                  type: string
+                  format: uuid
+                  example: 97ee5aa5-e058-4e94-8ae2-8769a9ceda40
+                receiver_id:
+                  type: string
+                  format: uuid
+                  example: aa9ee091-9b6e-4414-9765-ec33e71ecb94
+                amount:
+                  type: integer
+                  description: Amount in milligrams of fine 24K gold.
+                  minimum: 1
+                  example: 350
+      responses:
+        '200':
+          description: Transfer executed successfully or cached idempotent replay returned
+          headers:
+            X-Idempotent-Replay:
+              schema:
+                type: boolean
+              description: Set to true if the response was served from the persistent idempotency store without repeating financial mutations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '400':
+          description: Insufficient funds or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Unauthorized wallet access (user does not own sender wallet)
+        '409':
+          description: Idempotency conflict (request with this key is currently in-flight)
+        '422':
+          description: Idempotency key payload mismatch (reusing key with different amount or receiver)
+
+  /wallets/{id}/ledger:
+    get:
+      summary: Audit wallet double-entry ledger trail
+      description: Retrieves immutable ledger entries (debits and credits) and balance snapshots for a wallet.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Wallet UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Ledger entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet_id:
+                    type: string
+                    format: uuid
+                  count:
+                    type: integer
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LedgerEntry'
+
+  /reconcile:
+    post:
+      summary: Trigger ledger reconciliation audit
+      description: Computes ledger-derived balances for all wallets against current balances and validates mathematical conservation of gold.
+      responses:
+        '200':
+          description: Reconciliation audit report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationReport'
+
+components:
+  schemas:
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        balance:
+          type: integer
+          description: Gold balance in milligrams (24K fine gold).
+          example: 1000
+        currency:
+          type: string
+          example: XAU_MG
+        status:
+          type: string
+          example: ACTIVE
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TransferResponse:
+      type: object
+      properties:
+        transaction:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            sender_id:
+              type: string
+              format: uuid
+            receiver_id:
+              type: string
+              format: uuid
+            amount:
+              type: integer
+              example: 350
+            type:
+              type: string
+              example: TRANSFER
+            status:
+              type: string
+              example: COMPLETED
+            created_at:
+              type: string
+              format: date-time
+        is_idempotent_replay:
+          type: boolean
+          example: false
+        sender_balance_after:
+          type: integer
+          example: 650
+        receiver_balance_after:
+          type: integer
+          example: 550
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+          format: uuid
+        wallet_id:
+          type: string
+          format: uuid
+        entry_type:
+          type: string
+          enum: [DEBIT, CREDIT]
+          example: CREDIT
+        amount:
+          type: integer
+          example: 350
+        balance_after:
+          type: integer
+          example: 650
+        description:
+          type: string
+          example: Gold transfer outflow to wallet aa9ee091-...
+        created_at:
+          type: string
+          format: date-time
+
+    ReconciliationReport:
+      type: object
+      properties:
+        total_wallets:
+          type: integer
+          example: 2
+        matched_wallets:
+          type: integer
+          example: 2
+        mismatched_wallets:
+          type: integer
+          example: 0
+        system_total_balance:
+          type: integer
+          example: 1200
+        system_total_debits:
+          type: integer
+          example: 1550
+        system_total_credits:
+          type: integer
+          example: 350
+        is_system_balanced:
+          type: boolean
+          example: true
+        audited_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: insufficient gold balance
+
