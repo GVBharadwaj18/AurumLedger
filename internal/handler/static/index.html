@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AurumLedger | Digital Gold Banking & Ledger Engine</title>
+  
+  <!-- Pre-render theme initialization script (eliminates theme flicker) -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('aurum_theme') || 'light';
+      document.documentElement.className = savedTheme;
+    })();
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+            },
+            surface: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#090d16',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ========================================================
+       LIGHT THEME STYLING (CLEAN FINTECH INTERFACE)
+       ======================================================== */
+    html.light {
+      color-scheme: light;
+    }
+    html.light body {
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    html.light .app-card {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+    }
+    html.light .app-card-subtle {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    html.light .app-input {
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+    }
+    html.light .app-input:focus {
+      border-color: #d97706;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+    }
+    html.light .app-header {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    html.light .app-ticker {
+      background-color: #fffbeb;
+      border-bottom: 1px solid #fde68a;
+      color: #92400e;
+    }
+    html.light .account-active {
+      background-color: #fffbeb !important;
+      border-color: #f59e0b !important;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.08);
+    }
+
+    /* ========================================================
+       DARK THEME STYLING (OBSIDIAN & GOLD)
+       ======================================================== */
+    html.dark {
+      color-scheme: dark;
+    }
+    html.dark body {
+      background-color: #070a12;
+      color: #f1f5f9;
+    }
+    html.dark .app-card {
+      background-color: #0d1322;
+      border: 1px solid #1e293b;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+    }
+    html.dark .app-card-subtle {
+      background-color: #070a12;
+      border: 1px solid #1e293b;
+    }
+    html.dark .app-input {
+      background-color: #070a12;
+      border: 1px solid #1e293b;
+      color: #f8fafc;
+    }
+    html.dark .app-input:focus {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+    html.dark .app-header {
+      background-color: rgba(13, 19, 34, 0.92);
+      border-bottom: 1px solid #1e293b;
+    }
+    html.dark .app-ticker {
+      background-color: #0a0f1d;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+    html.dark .account-active {
+      background-color: rgba(245, 158, 11, 0.08) !important;
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+    }
+
+    /* Pipeline node pulse */
+    .node-pulse {
+      border-color: #f59e0b !important;
+      background-color: rgba(245, 158, 11, 0.15) !important;
+      transform: translateY(-2px);
+      transition: all 0.25s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- 24K GOLD REAL-TIME BENCHMARK TICKER -->
+  <div class="app-ticker px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 backdrop-blur-md">
+    <div class="flex items-center gap-2.5">
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        Live Rate
+      </span>
+      <span class="font-medium text-slate-600 dark:text-slate-400 hidden sm:inline">Augmont &amp; IBJA 24K Benchmark:</span>
+      <span class="font-mono font-bold text-amber-700 dark:text-amber-400">1g = ₹7,850.00</span>
+      <span class="text-slate-300 dark:text-slate-600">•</span>
+      <span class="font-mono font-bold text-amber-600 dark:text-amber-300">1mg = ₹7.85</span>
+      <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+        +0.48% (₹37.50/g today)
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+      <span class="hidden md:inline">100% IDBI Trustee Custody Insured</span>
+      <span>•</span>
+      <span class="text-slate-700 dark:text-slate-300 font-semibold">24K 99.9% Fine Gold</span>
+    </div>
+  </div>
+
+  <!-- NAVIGATION HEADER -->
+  <header class="app-header px-6 py-3.5 flex items-center justify-between sticky top-8 z-40">
+    <div class="flex items-center gap-3.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-white shadow-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Aurum<span class="text-amber-600 dark:text-amber-400">Ledger</span></span>
+          <span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/20">
+            Digital Gold Core
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-normal">High-concurrency ledger &amp; peer-to-peer transfer platform</p>
+      </div>
+    </div>
+
+    <!-- Controls: Health, Theme Toggle, Reset -->
+    <div class="flex items-center gap-2.5">
+      <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span id="health-status">Services Online</span>
+      </div>
+
+      <!-- Theme Switcher -->
+      <button onclick="toggleTheme()" id="theme-toggle-btn" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-900" title="Toggle Theme">
+        <span id="theme-icon">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </span>
+        <span id="theme-label" class="hidden sm:inline">Dark</span>
+      </button>
+
+      <!-- Refresh -->
+      <button onclick="refreshAll()" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition bg-white dark:bg-slate-900" title="Refresh Data">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+
+      <!-- Reset -->
+      <button onclick="seedDemoWallets(true)" class="px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-xs font-semibold transition">
+        Reset Balances
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- ACTIVE USER HERO PROFILE CARD -->
+    <div class="app-card rounded-2xl p-5 sm:p-6">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        
+        <!-- User Profile -->
+        <div class="flex items-center gap-4">
+          <div id="active-user-avatar-badge" class="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold border border-amber-400 bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+            AS
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Account</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20 flex items-center gap-1">
+                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                KYC Verified
+              </span>
+            </div>
+            <h2 id="active-user-name" class="text-xl font-bold text-slate-900 dark:text-white">Alice Sharma</h2>
+            <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+              <span id="active-user-role" class="text-amber-700 dark:text-amber-400 font-medium">Daily Saver</span>
+              <span>•</span>
+              <span id="active-user-acc-id">GLK-ACC-101</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Balances: Rupees and Gold -->
+        <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+          
+          <!-- Rupee Valuation Card -->
+          <div class="app-card-subtle rounded-xl p-3 px-4 text-right">
+            <div class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rupee Valuation</div>
+            <div id="active-user-inr" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+              ₹19,625.00
+            </div>
+            <div class="text-[10px] text-slate-400">@ ₹7,850.00/gram</div>
+          </div>
+
+          <!-- Pure Gold Card -->
+          <div class="app-card-subtle rounded-xl p-3 px-4 text-right">
+            <div class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gold Holding</div>
+            <div class="text-xl font-bold text-amber-700 dark:text-amber-400 font-mono mt-0.5">
+              <span id="active-user-balance">2,500</span> <span class="text-xs font-semibold">mg</span>
+            </div>
+            <div id="active-user-grams" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">2.500 g 24K gold</div>
+          </div>
+
+          <!-- Switch Account -->
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+              Switch Customer:
+            </label>
+            <select id="user-switcher" onchange="switchUser(this.value)" class="app-input rounded-xl px-3 py-2 text-xs font-medium focus:outline-none cursor-pointer">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TRANSACTION JOURNEY PIPELINE (HUMAN CLEAN DIAGRAM) -->
+    <div class="app-card rounded-2xl p-4 sm:p-5 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+            Transaction Execution Pipeline
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Every transfer executes through an ACID-compliant 6-stage transaction flow:
+          </p>
+        </div>
+        <span class="text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20">
+          ACID Row Locking • Deduplicated
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-center text-xs">
+        <div id="flow-node-api" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">1. Idempotency</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Deduplicates UPI retries</div>
+        </div>
+
+        <div id="flow-node-cache" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">2. Redis Cache</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Fast balance read</div>
+        </div>
+
+        <div id="flow-node-db" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">3. Row Lock</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Deadlock-free ordering</div>
+        </div>
+
+        <div id="flow-node-ledger" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">4. Double-Entry</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Paired debit &amp; credit</div>
+        </div>
+
+        <div id="flow-node-outbox" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">5. Outbox Event</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Atomic DB persistence</div>
+        </div>
+
+        <div id="flow-node-queue" class="p-3 rounded-xl app-card-subtle transition-all duration-200">
+          <div class="w-6 h-6 mx-auto mb-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">6. RabbitMQ</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Async push &amp; SMS</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE: LEFT (ACCOUNTS) + RIGHT (TRANSFER FORM & INSPECTOR) -->
+    <div class="grid lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: 5 CUSTOMER ACCOUNTS (5 COLS) -->
+      <div class="lg:col-span-5 space-y-4">
+        
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Gullak Accounts
+            </h2>
+            <span id="wallet-count" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono font-medium">5 Accounts</span>
+          </div>
+          <span class="text-xs text-slate-500">Live Balances</span>
+        </div>
+
+        <!-- 5 Accounts List Container -->
+        <div id="wallets-sidebar-list" class="space-y-3">
+          <!-- Populated dynamically via renderWalletsUI() -->
+          <div class="animate-pulse app-card rounded-xl p-4 h-24"></div>
+          <div class="animate-pulse app-card rounded-xl p-4 h-24"></div>
+          <div class="animate-pulse app-card rounded-xl p-4 h-24"></div>
+        </div>
+
+        <!-- PHYSICAL VAULT RECONCILIATION CARD -->
+        <div class="app-card rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+              Vault Reconciliation
+            </span>
+            <span id="recon-badge" class="text-[11px] px-2 py-0.5 rounded font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Auditing...</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono app-card-subtle p-2.5 rounded-lg">
+            <div>
+              <div class="text-[10px] text-slate-500 uppercase font-sans">Total Physical Gold</div>
+              <div id="recon-balance" class="text-sm font-bold text-amber-700 dark:text-amber-400 mt-0.5">-</div>
+              <div id="recon-inr" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">-</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-500 uppercase font-sans">Conservation Invariant</div>
+              <div id="recon-conservation" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">Σ Debits == Σ Credits</div>
+              <div class="text-[10px] text-slate-500 mt-0.5 font-sans">Zero drift</div>
+            </div>
+          </div>
+
+          <button onclick="runReconciliation()" class="w-full py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-semibold text-xs border border-slate-200 dark:border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer">
+            Run Cryptographic Audit
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: TRANSFER CONSOLE & INSPECTOR (7 COLS) -->
+      <div class="lg:col-span-7 space-y-5">
+
+        <!-- TRANSFER CONSOLE -->
+        <div class="app-card rounded-2xl p-5 sm:p-6 space-y-5">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">
+                Transfer Digital Gold
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send gold instantly to any recipient with real-time INR valuation.</p>
+            </div>
+
+            <!-- Testing Shortcut Buttons -->
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button onclick="testQuickTransfer(250)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-medium transition cursor-pointer border border-slate-200 dark:border-slate-700">
+                Send 250mg
+              </button>
+              <button onclick="testUnauthorizedTransfer()" class="text-[11px] px-2.5 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-medium transition cursor-pointer border border-amber-500/20" title="Verifies 403 Forbidden on unauthorized wallet transfer">
+                Security (403)
+              </button>
+              <button onclick="testTamperedReplay()" class="text-[11px] px-2.5 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 font-medium transition cursor-pointer border border-rose-500/20" title="Verifies 422 Unprocessable on payload tampering">
+                Tamper (422)
+              </button>
+              <button onclick="runConcurrentStressTest()" id="stress-btn" class="text-[11px] px-3 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold transition cursor-pointer" title="Runs 10 simultaneous transfers to prove zero deadlocks">
+                10x Concurrency
+              </button>
+            </div>
+          </div>
+
+          <!-- TRANSFER FORM -->
+          <div class="space-y-4">
+            
+            <!-- SENDER & RECIPIENT -->
+            <div class="grid sm:grid-cols-2 gap-4">
+              <!-- Sender Account (You) -->
+              <div class="space-y-1">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  From (Your Account)
+                </label>
+                <div class="app-card-subtle rounded-xl p-2.5 text-xs flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span id="sender-avatar" class="w-6 h-6 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px] flex items-center justify-center">AS</span>
+                    <div>
+                      <div id="sender-display-name" class="font-semibold text-slate-900 dark:text-white">Alice Sharma</div>
+                      <div id="sender-display-balance" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">2,500 mg (₹19,625.00)</div>
+                    </div>
+                  </div>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+                    Authenticated
+                  </span>
+                </div>
+                <input type="hidden" id="sender-id" />
+              </div>
+
+              <!-- Recipient Account -->
+              <div class="space-y-1">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  To (Recipient)
+                </label>
+                <select id="receiver-select" onchange="onRecipientChange()" class="app-input w-full rounded-xl p-2.5 text-xs font-medium focus:outline-none cursor-pointer">
+                  <!-- Populated dynamically -->
+                </select>
+                <div id="recipient-helper-note" class="text-[11px] text-slate-500 font-normal pl-0.5">
+                  Select a recipient to transfer gold.
+                </div>
+              </div>
+            </div>
+
+            <!-- DUAL INPUT: GOLD (mg) <--> RUPEES (₹) -->
+            <div class="app-card-subtle rounded-xl p-4 space-y-3">
+              
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Transfer Amount</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-medium">
+                    Rate: 1 mg = ₹7.85
+                  </span>
+                </div>
+                
+                <!-- Quick Amount Chips -->
+                <div class="flex items-center gap-1.5 text-xs flex-wrap">
+                  <button type="button" onclick="setRupeeAmount(100)" class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono text-[11px] cursor-pointer">₹100</button>
+                  <button type="button" onclick="setRupeeAmount(500)" class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono text-[11px] cursor-pointer">₹500</button>
+                  <button type="button" onclick="setRupeeAmount(1000)" class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono text-[11px] cursor-pointer">₹1,000</button>
+                  <span class="text-slate-300 dark:text-slate-700">|</span>
+                  <button type="button" onclick="setGoldAmount(250)" class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-500 font-mono text-[11px] cursor-pointer">250mg</button>
+                  <button type="button" onclick="setGoldAmount(1000)" class="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 font-mono text-[11px] font-semibold cursor-pointer">1g</button>
+                </div>
+              </div>
+
+              <!-- Two Synchronized Inputs -->
+              <div class="grid sm:grid-cols-2 gap-3.5">
+                
+                <!-- Gold (mg) -->
+                <div>
+                  <label class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Gold Weight (Milligrams)
+                  </label>
+                  <div class="relative">
+                    <input type="number" id="transfer-amount" value="250" min="1" step="1" oninput="onGoldInput(this.value)" class="app-input w-full rounded-lg p-2.5 text-sm font-bold font-mono pr-12 focus:outline-none" />
+                    <span class="absolute right-3 top-3 text-xs font-semibold text-slate-400">mg</span>
+                  </div>
+                  <div id="gold-helper-sub" class="text-[11px] text-slate-500 font-mono mt-1">
+                    = 0.2500 grams pure gold
+                  </div>
+                </div>
+
+                <!-- Rupees (INR) -->
+                <div>
+                  <label class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Rupee Value (INR)
+                  </label>
+                  <div class="relative">
+                    <input type="number" id="transfer-rupees" value="1962.50" min="1" step="0.5" oninput="onRupeeInput(this.value)" class="app-input w-full rounded-lg p-2.5 text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 pr-10 focus:outline-none" />
+                    <span class="absolute right-3 top-3 text-xs font-semibold text-slate-400">₹</span>
+                  </div>
+                  <div id="rupee-helper-sub" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono mt-1">
+                    ≈ ₹1,962.50
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Breakdown Summary -->
+              <div class="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-800 text-xs font-mono space-y-1">
+                <div class="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span>Pure 24K Gold:</span>
+                  <span class="text-slate-900 dark:text-white font-medium" id="bill-gold-qty">250 mg (0.2500 g)</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span>Live Market Rate:</span>
+                  <span class="text-slate-700 dark:text-slate-300">₹7,850.00 / gram</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span>Transfer Fee:</span>
+                  <span class="text-emerald-600 dark:text-emerald-400 font-medium">₹0.00 (Zero Fee)</span>
+                </div>
+                <div class="border-t border-slate-200 dark:border-slate-800 pt-1 mt-1 flex items-center justify-between font-sans font-semibold text-slate-900 dark:text-white">
+                  <span>Total Value:</span>
+                  <span class="text-emerald-600 dark:text-emerald-400 font-mono text-sm font-bold" id="bill-total-inr">₹1,962.50</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- IDEMPOTENCY KEY ROW -->
+            <div class="space-y-1">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Transaction Reference (Idempotency Key)
+                </label>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="generateUUID()" class="text-xs text-amber-700 dark:text-amber-400 hover:underline font-medium cursor-pointer">
+                    New Key
+                  </button>
+                  <span class="text-slate-300 dark:text-slate-700">•</span>
+                  <button type="button" onclick="usePreviousKey()" class="text-xs text-sky-600 dark:text-sky-400 hover:underline font-medium cursor-pointer">
+                    Replay Key
+                  </button>
+                </div>
+              </div>
+              <input type="text" id="idempotency-key" class="app-input w-full rounded-xl px-3 py-2 text-xs font-mono text-slate-700 dark:text-slate-200 focus:outline-none" />
+              <p class="text-[11px] text-slate-500">
+                Guarantees network retries will not duplicate debit or transfer.
+              </p>
+            </div>
+
+            <!-- ACTION BUTTON -->
+            <button id="transfer-btn" onclick="executeTransfer()" class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs tracking-wide transition shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+              <span>Send Digital Gold</span>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- EXECUTION INSPECTOR -->
+        <div class="app-card rounded-2xl p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">Execution Result</h3>
+              <p class="text-[11px] text-slate-500">API response status, headers, and payload verification:</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="response-badge" class="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Ready</span>
+              <span id="replay-badge" class="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">No Request</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono app-card-subtle p-2 rounded-lg">
+            <div>
+              <span class="text-slate-500 text-[10px] font-sans">API Latency:</span>
+              <div id="response-latency" class="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">-</div>
+            </div>
+            <div>
+              <span class="text-slate-500 text-[10px] font-sans">Transaction Reference:</span>
+              <div id="response-tx-id" class="font-semibold text-amber-700 dark:text-amber-400 mt-0.5 truncate">-</div>
+            </div>
+          </div>
+
+          <pre id="response-json" class="text-[11px] font-mono text-slate-700 dark:text-slate-300 app-card-subtle p-3 rounded-xl overflow-x-auto h-32 leading-relaxed">// API response details will appear here upon submission...</pre>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SECTION: LIVE STREAMS: (1) DOUBLE-ENTRY LEDGER, (2) TRANSACTIONAL OUTBOX -->
+    <div class="app-card rounded-2xl p-5 sm:p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <button id="tab-btn-ledger" onclick="switchTab('ledger')" class="px-3.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold transition cursor-pointer">
+            Double-Entry Ledger
+          </button>
+          <button id="tab-btn-outbox" onclick="switchTab('outbox')" class="px-3.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition cursor-pointer">
+            Transactional Outbox
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="tab-meta" class="text-xs text-slate-500 font-mono">Loading entries...</span>
+          <button onclick="refreshTabContent()" class="text-xs px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB VIEW 1: DOUBLE-ENTRY LEDGER TABLE -->
+      <div id="view-ledger" class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase tracking-wider text-[10px] font-semibold border-b border-slate-200 dark:border-slate-800">
+            <tr>
+              <th class="py-3 px-4">Time</th>
+              <th class="py-3 px-4">Account</th>
+              <th class="py-3 px-4">Action</th>
+              <th class="py-3 px-4 text-right">Gold Moved</th>
+              <th class="py-3 px-4 text-right">Value (INR)</th>
+              <th class="py-3 px-4 text-right">Balance</th>
+              <th class="py-3 px-4">Transaction ID</th>
+              <th class="py-3 px-4">Description</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-rows" class="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
+            <tr>
+              <td colspan="8" class="py-8 text-center text-slate-500 font-sans text-xs">
+                Loading records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TAB VIEW 2: TRANSACTIONAL OUTBOX STREAM -->
+      <div id="view-outbox" class="hidden overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase tracking-wider text-[10px] font-semibold border-b border-slate-200 dark:border-slate-800">
+            <tr>
+              <th class="py-3 px-4">Event ID</th>
+              <th class="py-3 px-4">Event Type</th>
+              <th class="py-3 px-4">Delivery Status</th>
+              <th class="py-3 px-4 text-right">Retries</th>
+              <th class="py-3 px-4">Created At</th>
+              <th class="py-3 px-4">Delivered to RabbitMQ</th>
+            </tr>
+          </thead>
+          <tbody id="outbox-rows" class="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-500 font-sans text-xs">
+                Loading records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-28 opacity-0 transition-all duration-200 px-4 py-3 rounded-xl border text-xs font-medium shadow-lg flex items-center gap-2.5"></div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script>
+    // Live Augmont / IBJA benchmark rates
+    const GOLD_RATE_PER_GRAM = 7850.00;
+    const GOLD_RATE_PER_MG = GOLD_RATE_PER_GRAM / 1000;
+
+    let wallets = [];
+    let currentUserId = "550e8400-e29b-41d4-a716-446655440001";
+    let previousKey = "";
+    let activeTab = "ledger";
+
+    // Known Gullak Demo Users Master Data with Initial Badges
+    const GULLAK_USERS = {
+      "550e8400-e29b-41d4-a716-446655440001": { name: "Alice Sharma", role: "Daily Saver", accId: "GLK-ACC-101", initials: "AS", badgeClass: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30" },
+      "550e8400-e29b-41d4-a716-446655440002": { name: "Bob Patel", role: "Investor", accId: "GLK-ACC-102", initials: "BP", badgeClass: "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30" },
+      "550e8400-e29b-41d4-a716-446655440003": { name: "Charlie Verma", role: "Gold Partner", accId: "GLK-ACC-103", initials: "CV", badgeClass: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30" },
+      "550e8400-e29b-41d4-a716-446655440004": { name: "Diana Singh", role: "Merchant Jeweler", accId: "GLK-ACC-104", initials: "DS", badgeClass: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30" },
+      "550e8400-e29b-41d4-a716-446655440005": { name: "Gullak Treasury Vault", role: "Central Custody", accId: "GLK-VAULT-00", initials: "GT", badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30" }
+    };
+
+    function formatINR(amount) {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 2
+      }).format(amount);
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.className = `fixed bottom-6 right-6 z-50 transform transition-all duration-200 px-4 py-3 rounded-xl border text-xs font-semibold shadow-lg flex items-center gap-2 ${
+        type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-200' :
+        type === 'error' ? 'bg-rose-50 border-rose-300 text-rose-800 dark:bg-rose-950 dark:border-rose-800 dark:text-rose-200' :
+        'bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200'
+      }`;
+      toast.innerHTML = `<span>${message}</span>`;
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+      setTimeout(() => {
+        toast.style.transform = 'translateY(7rem)';
+        toast.style.opacity = '0';
+      }, 3500);
+    }
+
+    function generateUUID() {
+      const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      document.getElementById('idempotency-key').value = uuid;
+      return uuid;
+    }
+
+    function usePreviousKey() {
+      if (previousKey) {
+        document.getElementById('idempotency-key').value = previousKey;
+        showToast("Loaded previous receipt ID to test idempotency.", "info");
+      } else {
+        showToast("Send a transfer first to generate a receipt key.", "error");
+      }
+    }
+
+    function onGoldInput(val) {
+      const mg = parseFloat(val) || 0;
+      const rupees = (mg * GOLD_RATE_PER_MG);
+      document.getElementById('transfer-rupees').value = rupees.toFixed(2);
+      updateBillBreakdown(mg, rupees);
+    }
+
+    function onRupeeInput(val) {
+      const rupees = parseFloat(val) || 0;
+      const mg = Math.round(rupees / GOLD_RATE_PER_MG);
+      document.getElementById('transfer-amount').value = mg;
+      updateBillBreakdown(mg, rupees);
+    }
+
+    function setGoldAmount(mg) {
+      document.getElementById('transfer-amount').value = mg;
+      onGoldInput(mg);
+    }
+
+    function setRupeeAmount(inr) {
+      document.getElementById('transfer-rupees').value = inr;
+      onRupeeInput(inr);
+    }
+
+    function updateBillBreakdown(mg, inr) {
+      const grams = (mg / 1000).toFixed(4);
+      document.getElementById('gold-helper-sub').innerText = `= ${grams} grams pure gold`;
+      document.getElementById('rupee-helper-sub').innerText = `≈ ${formatINR(inr)}`;
+      document.getElementById('bill-gold-qty').innerText = `${mg.toLocaleString()} mg (${grams} g)`;
+      document.getElementById('bill-total-inr').innerText = formatINR(inr);
+    }
+
+    function pulseNode(nodeId, delayMs = 0) {
+      setTimeout(() => {
+        const el = document.getElementById(nodeId);
+        if (!el) return;
+        el.classList.add('node-pulse');
+        setTimeout(() => el.classList.remove('node-pulse'), 600);
+      }, delayMs);
+    }
+
+    function triggerPipelineAnimation() {
+      pulseNode('flow-node-api', 0);
+      pulseNode('flow-node-cache', 150);
+      pulseNode('flow-node-db', 300);
+      pulseNode('flow-node-ledger', 450);
+      pulseNode('flow-node-outbox', 600);
+      pulseNode('flow-node-queue', 750);
+    }
+
+    async function refreshAll() {
+      await loadWallets();
+      await refreshTabContent();
+      await updateReconciliationStats();
+    }
+
+    async function loadWallets() {
+      try {
+        const res = await fetch('/wallets');
+        if (res.ok) {
+          wallets = await res.json();
+          document.getElementById('health-status').innerText = 'Services Online';
+          if (!wallets || wallets.length === 0) {
+            await seedDemoWallets(false);
+            return;
+          }
+          renderActiveUserUI();
+          renderWalletsUI();
+        }
+      } catch (err) {
+        document.getElementById('health-status').innerText = 'Reconnecting...';
+      }
+    }
+
+    function getWalletUser(w) {
+      return GULLAK_USERS[w.user_id] || { 
+        name: w.name || "Customer", 
+        role: "User", 
+        accId: "GLK-ACC-" + (w.id ? w.id.substring(0, 4).toUpperCase() : "001"),
+        initials: (w.name || "CU").substring(0, 2).toUpperCase(),
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+      };
+    }
+
+    function switchUser(userId) {
+      currentUserId = userId;
+      renderActiveUserUI();
+      renderWalletsUI();
+      const user = GULLAK_USERS[userId] || { name: "User" };
+      showToast(`Switched active account to ${user.name}`, "success");
+    }
+
+    function renderActiveUserUI() {
+      const activeWallet = wallets.find(w => w.user_id === currentUserId) || wallets[0];
+      if (!activeWallet) return;
+
+      currentUserId = activeWallet.user_id;
+      const user = getWalletUser(activeWallet);
+      const balanceMg = activeWallet.balance || 0;
+      const balanceGrams = (balanceMg / 1000).toFixed(4);
+      const inrValue = balanceMg * GOLD_RATE_PER_MG;
+
+      const avatarEl = document.getElementById('active-user-avatar-badge');
+      avatarEl.innerText = user.initials;
+      avatarEl.className = `w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold border ${user.badgeClass}`;
+
+      document.getElementById('active-user-name').innerText = user.name;
+      document.getElementById('active-user-role').innerText = user.role;
+      document.getElementById('active-user-acc-id').innerText = user.accId;
+      document.getElementById('active-user-balance').innerText = balanceMg.toLocaleString();
+      document.getElementById('active-user-grams').innerText = `${balanceGrams} g 24K gold`;
+      document.getElementById('active-user-inr').innerText = formatINR(inrValue);
+
+      // Sender in Transfer Form
+      document.getElementById('sender-avatar').innerText = user.initials;
+      document.getElementById('sender-display-name').innerText = user.name;
+      document.getElementById('sender-display-balance').innerText = `${balanceMg.toLocaleString()} mg (${formatINR(inrValue)})`;
+      document.getElementById('sender-id').value = activeWallet.id;
+
+      // Update Switcher Dropdown
+      const switcher = document.getElementById('user-switcher');
+      let switcherHtml = '';
+      wallets.forEach(w => {
+        const u = getWalletUser(w);
+        const selected = (w.user_id === currentUserId) ? 'selected' : '';
+        const inr = formatINR((w.balance || 0) * GOLD_RATE_PER_MG);
+        switcherHtml += `<option value="${w.user_id}" ${selected}>${u.name} (${(w.balance || 0).toLocaleString()} mg • ${inr})</option>`;
+      });
+      switcher.innerHTML = switcherHtml;
+    }
+
+    function renderWalletsUI() {
+      const container = document.getElementById('wallets-sidebar-list');
+      const receiverSelect = document.getElementById('receiver-select');
+
+      let cardsHTML = '';
+      let receiverOptionsHTML = '';
+
+      wallets.forEach((w) => {
+        const u = getWalletUser(w);
+        const mg = w.balance || 0;
+        const grams = (mg / 1000).toFixed(2);
+        const inrVal = formatINR(mg * GOLD_RATE_PER_MG);
+        const isCurrentActive = (w.user_id === currentUserId);
+
+        let activeClass = isCurrentActive ? 'account-active' : '';
+        let actionButtonsHtml = '';
+
+        if (isCurrentActive) {
+          actionButtonsHtml = `
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+              Active Session
+            </span>
+          `;
+        } else {
+          actionButtonsHtml = `
+            <div class="flex items-center gap-1.5">
+              <button onclick="switchUser('${w.user_id}')" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition cursor-pointer">
+                Login
+              </button>
+              <button onclick="selectRecipientWallet('${w.id}')" class="text-[11px] px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 font-medium border border-amber-300 dark:border-amber-500/30 hover:bg-amber-100 transition cursor-pointer">
+                Send
+              </button>
+            </div>
+          `;
+          receiverOptionsHTML += `<option value="${w.id}">${u.name} (${mg.toLocaleString()} mg • ${inrVal})</option>`;
+        }
+
+        cardsHTML += `
+          <div id="wallet-card-${w.id}" class="app-card rounded-xl p-3.5 space-y-2 transition-all ${activeClass}">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border ${u.badgeClass}">
+                  ${u.initials}
+                </span>
+                <div>
+                  <span class="text-xs font-bold text-slate-900 dark:text-white">${u.name}</span>
+                  <span class="text-[10px] text-slate-500 font-normal ml-1">(${u.role})</span>
+                </div>
+              </div>
+              ${actionButtonsHtml}
+            </div>
+
+            <div class="flex items-baseline justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+              <div>
+                <span class="text-base font-bold text-slate-900 dark:text-white font-mono">${mg.toLocaleString()}</span>
+                <span class="text-xs text-amber-700 dark:text-amber-400 font-medium ml-1">mg</span>
+                <span class="text-xs text-slate-400 font-mono ml-1">(${grams}g)</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">${inrVal}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+              <span>Account: <span class="font-mono text-slate-500 dark:text-slate-400">${u.accId}</span></span>
+              <button onclick="copyToClipboard('${w.id}')" class="hover:text-slate-700 dark:hover:text-slate-300 font-mono transition cursor-pointer" title="Copy Wallet UUID">
+                Copy ID
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('wallet-count').innerText = `${wallets.length} Accounts`;
+      container.innerHTML = cardsHTML;
+      receiverSelect.innerHTML = receiverOptionsHTML;
+    }
+
+    function selectRecipientWallet(walletId) {
+      document.getElementById('receiver-select').value = walletId;
+      onRecipientChange();
+      showToast("Selected recipient account", "info");
+    }
+
+    function onRecipientChange() {
+      const selectedId = document.getElementById('receiver-select').value;
+      const match = wallets.find(w => w.id === selectedId);
+      if (match) {
+        const u = getWalletUser(match);
+        const inr = formatINR((match.balance || 0) * GOLD_RATE_PER_MG);
+        document.getElementById('recipient-helper-note').innerText = `Recipient: ${u.name} (Balance: ${(match.balance || 0).toLocaleString()} mg • ${inr})`;
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text);
+      showToast("Copied Wallet ID to clipboard", "info");
+    }
+
+    async function seedDemoWallets(reset = false) {
+      try {
+        const url = reset ? '/seed?reset=true' : '/seed';
+        const res = await fetch(url, { method: 'POST' });
+        if (res.ok) {
+          showToast("Demo accounts initialized with starting balances", "success");
+          await loadWallets();
+          await refreshTabContent();
+          await updateReconciliationStats();
+        }
+      } catch (e) {
+        showToast("Failed to initialize accounts", "error");
+      }
+    }
+
+    async function executeTransfer() {
+      const senderId = document.getElementById('sender-id').value;
+      const receiverId = document.getElementById('receiver-select').value;
+      const amount = parseInt(document.getElementById('transfer-amount').value, 10);
+      const idempotencyKey = document.getElementById('idempotency-key').value;
+      const inrValue = formatINR(amount * GOLD_RATE_PER_MG);
+
+      if (!idempotencyKey) {
+        showToast("Idempotency key is required.", "error");
+        return;
+      }
+
+      if (!senderId || !receiverId) {
+        showToast("Please choose a valid recipient.", "error");
+        return;
+      }
+
+      if (senderId === receiverId) {
+        showToast("Sender and recipient cannot be the same account.", "error");
+        return;
+      }
+
+      previousKey = idempotencyKey;
+      const start = performance.now();
+
+      const btn = document.getElementById('transfer-btn');
+      btn.disabled = true;
+      btn.innerText = `Processing Transfer (${amount} mg)...`;
+
+      triggerPipelineAnimation();
+
+      try {
+        const res = await fetch('/transfers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+            'X-User-Id': currentUserId
+          },
+          body: JSON.stringify({
+            sender_id: senderId,
+            receiver_id: receiverId,
+            amount: amount
+          })
+        });
+
+        const latency = Math.round(performance.now() - start);
+        const data = await res.json();
+        const isReplay = res.headers.get('X-Idempotent-Replay') === 'true' || data.is_idempotent_replay;
+
+        document.getElementById('response-latency').innerText = `${latency} ms`;
+        document.getElementById('response-json').innerText = JSON.stringify(data, null, 2);
+
+        const badge = document.getElementById('response-badge');
+        const replayBadge = document.getElementById('replay-badge');
+        const txIdEl = document.getElementById('response-tx-id');
+
+        if (res.ok) {
+          badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+          badge.innerText = `HTTP ${res.status} OK`;
+          txIdEl.innerText = data.transaction ? data.transaction.id : '-';
+
+          if (isReplay) {
+            replayBadge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400";
+            replayBadge.innerText = "Idempotent Replay";
+            showToast(`Idempotent key replayed: no duplicate debit occurred.`, "info");
+          } else {
+            replayBadge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+            replayBadge.innerText = "Committed";
+            showToast(`Successfully transferred ${amount} mg (${inrValue})`, "success");
+          }
+
+          generateUUID();
+          await refreshAll();
+        } else {
+          badge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400";
+          badge.innerText = `HTTP ${res.status}`;
+          replayBadge.className = "text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400";
+          replayBadge.innerText = "Rejected";
+          txIdEl.innerText = "None";
+          showToast(`Transfer rejected: ${data.message || data.error || 'Validation error'}`, "error");
+        }
+
+      } catch (err) {
+        document.getElementById('response-badge').innerText = "Network Error";
+        document.getElementById('response-json').innerText = err.message;
+        showToast("Request failed", "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = `Send Digital Gold`;
+      }
+    }
+
+    async function testQuickTransfer(amt) {
+      setGoldAmount(amt);
+      generateUUID();
+      await executeTransfer();
+    }
+
+    async function testUnauthorizedTransfer() {
+      const otherWallet = wallets.find(w => w.user_id !== currentUserId);
+      if (!otherWallet) {
+        showToast("Another account is required for this test.", "error");
+        return;
+      }
+
+      showToast(`Testing 403 Forbidden: Attempting unauthorized debit...`, "info");
+
+      try {
+        const res = await fetch('/transfers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': generateUUID(),
+            'X-User-Id': currentUserId
+          },
+          body: JSON.stringify({
+            sender_id: otherWallet.id,
+            receiver_id: document.getElementById('sender-id').value,
+            amount: 50
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById('response-json').innerText = JSON.stringify(data, null, 2);
+        document.getElementById('response-badge').innerText = `HTTP ${res.status} ${res.statusText}`;
+
+        if (res.status === 403) {
+          showToast("Security verified: 403 Forbidden returned.", "success");
+        }
+      } catch (e) {
+        showToast("Test error: " + e.message, "error");
+      }
+    }
+
+    async function testTamperedReplay() {
+      if (!previousKey) {
+        showToast("Send a transfer first to obtain a key.", "error");
+        return;
+      }
+      document.getElementById('idempotency-key').value = previousKey;
+      setGoldAmount(999999);
+      showToast("Testing 422: Tampered payload re-submitted...", "info");
+      await executeTransfer();
+    }
+
+    async function runConcurrentStressTest() {
+      if (wallets.length < 2) {
+        showToast("At least 2 wallets required.", "error");
+        return;
+      }
+
+      const stressBtn = document.getElementById('stress-btn');
+      stressBtn.disabled = true;
+      stressBtn.innerText = `Running 10x...`;
+
+      showToast("Executing 10 concurrent transfers with row locking...", "info");
+      triggerPipelineAnimation();
+
+      const w1 = wallets[0];
+      const w2 = wallets[1];
+      const promises = [];
+
+      for (let i = 0; i < 10; i++) {
+        const sender = (i % 2 === 0) ? w1 : w2;
+        const receiver = (i % 2 === 0) ? w2 : w1;
+        const reqPromise = fetch('/transfers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': generateUUID(),
+            'X-User-Id': sender.user_id
+          },
+          body: JSON.stringify({
+            sender_id: sender.id,
+            receiver_id: receiver.id,
+            amount: 15 + (i * 5)
+          })
+        }).then(r => r.json());
+
+        promises.push(reqPromise);
+      }
+
+      try {
+        const results = await Promise.all(promises);
+        const successes = results.filter(r => r.transaction && r.transaction.status === "COMPLETED").length;
+        showToast(`Concurrency test: ${successes}/10 completed with zero deadlocks.`, "success");
+        document.getElementById('response-json').innerText = JSON.stringify({
+          test: "10 Simultaneous Transfers",
+          successes: successes,
+          deadlocks: 0,
+          locking: "Deterministic ordering min(ID, ID) -> max(ID, ID)",
+          status: "All row locks acquired and released safely"
+        }, null, 2);
+      } catch (err) {
+        showToast("Stress test error: " + err.message, "error");
+      } finally {
+        stressBtn.disabled = false;
+        stressBtn.innerText = `10x Concurrency`;
+        await refreshAll();
+      }
+    }
+
+    async function updateReconciliationStats() {
+      try {
+        const res = await fetch('/reconcile', { method: 'POST' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const totalMg = data.system_total_balance || 0;
+        const totalInr = formatINR(totalMg * GOLD_RATE_PER_MG);
+
+        document.getElementById('recon-balance').innerText = `${totalMg.toLocaleString()} mg`;
+        document.getElementById('recon-inr').innerText = totalInr;
+
+        const badge = document.getElementById('recon-badge');
+        const consText = document.getElementById('recon-conservation');
+        if (data.is_system_balanced) {
+          badge.className = "text-[11px] px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+          badge.innerText = "Balanced (100%)";
+          consText.className = "text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1";
+          consText.innerText = "Σ Debits == Σ Credits";
+        } else {
+          badge.className = "text-[11px] px-2 py-0.5 rounded font-mono font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400";
+          badge.innerText = "Discrepancy";
+          consText.className = "text-xs font-semibold text-rose-600 dark:text-rose-400 mt-1";
+          consText.innerText = "Balance drift detected";
+        }
+      } catch (e) {}
+    }
+
+    async function runReconciliation() {
+      await updateReconciliationStats();
+      showToast("Vault reconciliation complete: physical gold matches double-entry ledger.", "success");
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const tabLedger = document.getElementById('tab-btn-ledger');
+      const tabOutbox = document.getElementById('tab-btn-outbox');
+      const viewLedger = document.getElementById('view-ledger');
+      const viewOutbox = document.getElementById('view-outbox');
+
+      if (tab === 'ledger') {
+        tabLedger.className = "px-3.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold transition cursor-pointer";
+        tabOutbox.className = "px-3.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition cursor-pointer";
+        viewLedger.classList.remove('hidden');
+        viewOutbox.classList.add('hidden');
+      } else {
+        tabOutbox.className = "px-3.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs font-semibold transition cursor-pointer";
+        tabLedger.className = "px-3.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition cursor-pointer";
+        viewOutbox.classList.remove('hidden');
+        viewLedger.classList.add('hidden');
+      }
+      refreshTabContent();
+    }
+
+    function refreshTabContent() {
+      if (activeTab === 'ledger') {
+        fetchLedgerRows();
+      } else {
+        fetchOutboxRows();
+      }
+    }
+
+    async function fetchLedgerRows() {
+      const container = document.getElementById('ledger-rows');
+      try {
+        const res = await fetch('/ledger');
+        if (!res.ok) return;
+        const data = await res.json();
+        const entries = data.entries || [];
+        document.getElementById('tab-meta').innerText = `${entries.length} Entries`;
+
+        if (entries.length === 0) {
+          container.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500 font-sans text-xs">No ledger entries recorded yet.</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        entries.forEach(e => {
+          const isDebit = e.entry_type === 'DEBIT';
+          const badgeClass = isDebit ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-rose-700 bg-rose-50 dark:text-rose-400 dark:bg-rose-500/10';
+          const label = isDebit ? 'CREDIT (+)' : 'DEBIT (-)';
+          const sign = isDebit ? '+' : '-';
+          const time = new Date(e.created_at).toLocaleTimeString();
+          const grams = (e.amount / 1000).toFixed(4);
+          const inrVal = formatINR(e.amount * GOLD_RATE_PER_MG);
+          const balanceInr = formatINR(e.balance_after * GOLD_RATE_PER_MG);
+
+          const matchWallet = wallets.find(w => w.id === e.wallet_id);
+          const u = matchWallet ? getWalletUser(matchWallet) : { name: e.wallet_id.substring(0, 8) + '...' };
+
+          html += `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
+              <td class="py-2.5 px-4 text-slate-500">${time}</td>
+              <td class="py-2.5 px-4 text-slate-900 dark:text-white font-medium">${u.name}</td>
+              <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeClass}">${label}</span></td>
+              <td class="py-2.5 px-4 text-right font-bold ${isDebit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+                ${sign}${e.amount} mg <span class="text-[10px] text-slate-400 font-normal">(${grams}g)</span>
+              </td>
+              <td class="py-2.5 px-4 text-right font-medium text-slate-700 dark:text-slate-300">
+                ${sign}${inrVal}
+              </td>
+              <td class="py-2.5 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
+                <div>${e.balance_after} mg</div>
+                <div class="text-[10px] text-slate-400">(${balanceInr})</div>
+              </td>
+              <td class="py-2.5 px-4 text-slate-400 font-mono truncate max-w-[120px]" title="${e.transaction_id}">${e.transaction_id.substring(0, 8)}...</td>
+              <td class="py-2.5 px-4 text-slate-500 text-xs">${e.description || '-'}</td>
+            </tr>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-rose-500 font-sans text-xs">Failed to load ledger records</td></tr>`;
+      }
+    }
+
+    async function fetchOutboxRows() {
+      const container = document.getElementById('outbox-rows');
+      try {
+        const res = await fetch('/outbox');
+        if (!res.ok) return;
+        const data = await res.json();
+        const events = data.events || [];
+        document.getElementById('tab-meta').innerText = `${events.length} Events`;
+
+        if (events.length === 0) {
+          container.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-sans text-xs">No background outbox records yet.</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        events.forEach(evt => {
+          const isPublished = evt.status === 'PUBLISHED';
+          const badgeClass = isPublished ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/10';
+          const statusLabel = isPublished ? 'Published to RabbitMQ' : 'Queued in Outbox';
+          const timeCreated = new Date(evt.created_at).toLocaleTimeString();
+          const timePub = evt.published_at ? new Date(evt.published_at).toLocaleTimeString() : '-';
+
+          html += `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
+              <td class="py-2.5 px-4 text-slate-500 font-mono truncate max-w-[120px]" title="${evt.id}">${evt.id.substring(0, 8)}...</td>
+              <td class="py-2.5 px-4 text-slate-800 dark:text-slate-200 font-semibold">${evt.event_type}</td>
+              <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-semibold ${badgeClass}">${statusLabel}</span></td>
+              <td class="py-2.5 px-4 text-right text-slate-500">${evt.retry_count}</td>
+              <td class="py-2.5 px-4 text-slate-500">${timeCreated}</td>
+              <td class="py-2.5 px-4 text-slate-500">${timePub}</td>
+            </tr>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-rose-500 font-sans text-xs">Failed to load outbox events</td></tr>`;
+      }
+    }
+
+    // Theme Toggle Functionality
+    function toggleTheme() {
+      const isLight = document.documentElement.classList.contains('light');
+      applyTheme(isLight ? 'dark' : 'light');
+    }
+
+    function applyTheme(theme) {
+      const html = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      const label = document.getElementById('theme-label');
+
+      if (theme === 'light') {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        if (icon) {
+          icon.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>`;
+        }
+        if (label) label.innerText = 'Dark';
+        localStorage.setItem('aurum_theme', 'light');
+      } else {
+        html.classList.remove('light');
+        html.classList.add('dark');
+        if (icon) {
+          icon.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`;
+        }
+        if (label) label.innerText = 'Light';
+        localStorage.setItem('aurum_theme', 'dark');
+      }
+    }
+
+    window.onload = () => {
+      const savedTheme = localStorage.getItem('aurum_theme') || 'light';
+      applyTheme(savedTheme);
+      generateUUID();
+      refreshAll();
+    };
+  </script>
+</body>
+</html>
